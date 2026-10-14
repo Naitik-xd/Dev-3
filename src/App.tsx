@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { AbsenceBasketView } from './components/AbsenceBasketView';
 import { PlanView } from './components/PlanView';
 import { MasterTimetableTab } from './components/MasterTimetableTab';
+import { GemmaGenerationModal } from './components/GemmaGenerationModal';
 import { AbsenceRecord, AbsenceScope, SubstitutionPlan } from './types';
 import { TEACHERS } from './data/mockData';
 import { generateSubstitutionPlan, ABSENCE_THRESHOLD_PERCENT } from './utils/solver';
@@ -20,6 +21,11 @@ export default function App() {
 
   const [plan, setPlan] = useState<SubstitutionPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGemmaModalOpen, setIsGemmaModalOpen] = useState(false);
+  const [isBackendDone, setIsBackendDone] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const pendingPlanRef = useRef<SubstitutionPlan | null>(null);
 
   // Generate initial plan on mount for the default 2 absent teachers
   useEffect(() => {
@@ -68,19 +74,50 @@ export default function App() {
     if (absences.length === 0) return;
 
     setIsGenerating(true);
+    setIsBackendDone(false);
+    setIsGemmaModalOpen(true);
+    pendingPlanRef.current = null;
+
+    // Create abort controller for cancelability
+    abortControllerRef.current = new AbortController();
+
     try {
-      const resultPlan = await requestSubstitutionPlan(absences);
-      setPlan(resultPlan);
-      setActiveTab('plan');
-    } catch (err) {
-      console.error('Plan generation failed:', err);
-      // Fallback locally
+      const resultPlan = await requestSubstitutionPlan(absences, abortControllerRef.current.signal);
+      pendingPlanRef.current = resultPlan;
+      setIsBackendDone(true);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        console.log('User cancelled Gemma generation request');
+        setIsGemmaModalOpen(false);
+        setIsGenerating(false);
+        return;
+      }
+      console.error('Plan generation failed, using local solver:', err);
       const fallback = generateSubstitutionPlan(absences);
-      setPlan(fallback);
-      setActiveTab('plan');
+      pendingPlanRef.current = fallback;
+      setIsBackendDone(true);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCancelGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsGemmaModalOpen(false);
+    setIsGenerating(false);
+    setIsBackendDone(false);
+    pendingPlanRef.current = null;
+  };
+
+  const handleModalComplete = () => {
+    if (pendingPlanRef.current) {
+      setPlan(pendingPlanRef.current);
+    }
+    setIsGemmaModalOpen(false);
+    setIsBackendDone(false);
+    setActiveTab('plan');
   };
 
   // Manual teacher reassignment in the plan
@@ -157,6 +194,24 @@ export default function App() {
         )}
       </main>
 
+      {/* Footer */}
+      <footer className="mt-auto border-t border-slate-200 bg-white/80 backdrop-blur-xs py-6 px-4 text-center text-xs text-slate-500 space-y-1.5 mb-14 sm:mb-0">
+        <p className="font-medium text-slate-600">
+          This is made for HacktoberFest 26, and is currently in beta, so is not available for Public use.
+        </p>
+        <p className="flex items-center justify-center gap-1 text-slate-600">
+          <span>Made with ❤️ by</span>
+          <a
+            href="https://Na1t1k.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
+          >
+            Naitik
+          </a>
+        </p>
+      </footer>
+
       {/* Mobile Fixed Bottom Navigation Bar (Thumb-zone optimized, <=15% height) */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg px-2 py-1">
         <div className="grid grid-cols-3 items-center h-14">
@@ -201,6 +256,14 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* Gemma 4 Intelligence Pipeline Modal */}
+      <GemmaGenerationModal
+        isOpen={isGemmaModalOpen}
+        onCancel={handleCancelGeneration}
+        onComplete={handleModalComplete}
+        isBackendDone={isBackendDone}
+      />
     </div>
   );
 }

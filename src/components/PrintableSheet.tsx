@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Printer, X, Download } from 'lucide-react';
 import { SubstitutionPlan } from '../types';
-import { TEACHERS, CLASS_NAMES, PERIOD_TIMES, getTeacherById } from '../data/mockData';
+import { CLASS_NAMES, PERIOD_TIMES, getTeacherById } from '../data/mockData';
+import { downloadPrintableReport, generatePrintableHTML } from '../utils/pdfExport';
 
 interface PrintableSheetProps {
   plan: SubstitutionPlan;
@@ -9,8 +10,37 @@ interface PrintableSheetProps {
 }
 
 export const PrintableSheet: React.FC<PrintableSheetProps> = ({ plan, onClose }) => {
+  const [downloadSuccess, setDownloadSuccess] = React.useState(false);
+
   const handlePrint = () => {
-    window.print();
+    try {
+      // In sandboxed environments or iframes, open a clean print window
+      const printWin = window.open('', '_blank');
+      if (printWin) {
+        printWin.document.write(generatePrintableHTML(plan));
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => {
+          try {
+            printWin.print();
+          } catch {
+            // If print fails in popup, download directly
+            downloadPrintableReport(plan);
+          }
+        }, 300);
+      } else {
+        // Fallback to in-page print or direct download
+        window.print();
+      }
+    } catch {
+      downloadPrintableReport(plan);
+    }
+  };
+
+  const handleDownload = () => {
+    downloadPrintableReport(plan);
+    setDownloadSuccess(true);
+    setTimeout(() => setDownloadSuccess(false), 2500);
   };
 
   // Group assignments by period for the master sheet
@@ -23,22 +53,29 @@ export const PrintableSheet: React.FC<PrintableSheetProps> = ({ plan, onClose })
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         
         {/* Modal Controls (Hidden in Print) */}
-        <div className="px-6 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between no-print shrink-0">
+        <div className="px-6 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between no-print shrink-0 flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
               Printable Substitution Roster & PDF Export
             </h3>
             <p className="text-xs text-slate-500">
-              Formatted for standard A4 landscape or portrait printing
+              Print directly or download the standalone report file to save as PDF
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleDownload}
+              className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Download className="w-4 h-4" />
+              <span>{downloadSuccess ? 'Downloaded!' : 'Download Report (.html/pdf)'}</span>
+            </button>
             <button
               onClick={handlePrint}
               className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 shadow-xs"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Save as PDF</span>
+              <span>Print Dialog</span>
             </button>
             <button
               onClick={onClose}

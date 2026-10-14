@@ -12,13 +12,15 @@ import {
   AlertTriangle, 
   ArrowLeft,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Download
 } from 'lucide-react';
 import { SubstitutionPlan, SubstitutionAssignment } from '../types';
 import { TEACHERS, CLASS_NAMES, PERIOD_TIMES, getTeacherById } from '../data/mockData';
 import { SlotSwapModal } from './SlotSwapModal';
 import { WhatsAppModal } from './WhatsAppModal';
 import { PrintableSheet } from './PrintableSheet';
+import { downloadPrintableReport } from '../utils/pdfExport';
 
 interface PlanViewProps {
   plan: SubstitutionPlan | null;
@@ -122,7 +124,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons: WhatsApp & Print */}
+        {/* Action Buttons: WhatsApp & Print / Download */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowWhatsAppModal(true)}
@@ -133,11 +135,19 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </button>
 
           <button
+            onClick={() => downloadPrintableReport(plan)}
+            className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
+          >
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Download PDF / Report</span>
+          </button>
+
+          <button
             onClick={() => setShowPrintModal(true)}
             className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white transition-colors flex items-center gap-1.5 shadow-xs"
           >
             <Printer className="w-4 h-4 shrink-0" />
-            <span>Print / PDF</span>
+            <span>Print View</span>
           </button>
 
           <button
