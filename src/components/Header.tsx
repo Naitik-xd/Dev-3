@@ -40,8 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Zone 2: Navigation Tabs (Single line, touch-friendly) */}
-          <nav className="flex items-center gap-1 sm:gap-2">
+          {/* Zone 2: Navigation Tabs (Shown on md+ screens; mobile uses bottom tab bar) */}
+          <nav className="hidden md:flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setActiveTab('absences')}
               className={`min-h-[44px] px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${

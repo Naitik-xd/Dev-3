@@ -116,7 +116,7 @@ export default function App() {
   const canGenerate = absences.length > 0 && !isOverThreshold && !isGenerating;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 sm:pb-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 sm:pb-8 w-full max-w-full overflow-x-hidden">
       {/* Top Bar Header */}
       <Header
         activeTab={activeTab}

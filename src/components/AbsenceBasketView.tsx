@@ -153,11 +153,11 @@ export const AbsenceBasketView: React.FC<AbsenceBasketViewProps> = ({
               />
             </div>
 
-            {/* Wing Segmented Filter */}
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg mb-4 overflow-x-auto">
+            {/* Wing Segmented Filter (Responsive grid - no horizontal scroll) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-slate-100 rounded-lg mb-4">
               <button
                 onClick={() => setSelectedWing('all')}
-                className={`min-h-[38px] px-3 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+                className={`min-h-[38px] px-2 sm:px-3 text-xs font-semibold rounded-md transition-colors text-center ${
                   selectedWing === 'all'
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
