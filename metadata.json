@@ -1,0 +1,6 @@
+{
+  "name": "SubMaster - Teacher Substitution System",
+  "description": "Light-mode conflict-free teacher substitution and timetable coordination system for Classes 1–12 powered by Gemma 4.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
