@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Printer, X, Download } from 'lucide-react';
+import { Printer, X, Download, FileText } from 'lucide-react';
 import { SubstitutionPlan } from '../types';
 import { CLASS_NAMES, PERIOD_TIMES, getTeacherById } from '../data/mockData';
-import { downloadPrintableReport, generatePrintableHTML } from '../utils/pdfExport';
+import { downloadPrintablePDF, generatePrintableHTML } from '../utils/pdfExport';
 
 interface PrintableSheetProps {
   plan: SubstitutionPlan;
@@ -10,35 +10,18 @@ interface PrintableSheetProps {
 }
 
 export const PrintableSheet: React.FC<PrintableSheetProps> = ({ plan, onClose }) => {
-  const [downloadSuccess, setDownloadSuccess] = React.useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const handlePrint = () => {
     try {
-      // In sandboxed environments or iframes, open a clean print window
-      const printWin = window.open('', '_blank');
-      if (printWin) {
-        printWin.document.write(generatePrintableHTML(plan));
-        printWin.document.close();
-        printWin.focus();
-        setTimeout(() => {
-          try {
-            printWin.print();
-          } catch {
-            // If print fails in popup, download directly
-            downloadPrintableReport(plan);
-          }
-        }, 300);
-      } else {
-        // Fallback to in-page print or direct download
-        window.print();
-      }
+      window.print();
     } catch {
-      downloadPrintableReport(plan);
+      downloadPrintablePDF(plan);
     }
   };
 
-  const handleDownload = () => {
-    downloadPrintableReport(plan);
+  const handleDownloadPDF = () => {
+    downloadPrintablePDF(plan);
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 2500);
   };
@@ -64,11 +47,11 @@ export const PrintableSheet: React.FC<PrintableSheetProps> = ({ plan, onClose })
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={handleDownload}
-              className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
+              onClick={handleDownloadPDF}
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
             >
               <Download className="w-4 h-4" />
-              <span>{downloadSuccess ? 'Downloaded!' : 'Download Report (.html/pdf)'}</span>
+              <span>{downloadSuccess ? 'PDF Downloaded!' : 'Download Official PDF (.pdf)'}</span>
             </button>
             <button
               onClick={handlePrint}

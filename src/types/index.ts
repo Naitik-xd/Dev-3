@@ -35,6 +35,8 @@ export interface SubstitutionAssignment {
   reason: string;
   wingMatch: boolean;
   isManualOverride?: boolean;
+  isEmergencyTier?: boolean;
+  isStudyHall?: boolean;
 }
 
 export interface UncoveredSlot {
@@ -49,12 +51,14 @@ export interface SubstitutionPlan {
   id: string;
   createdAt: string;
   date: string;
+  generatedAtTimestamp?: number;
   absences: AbsenceRecord[];
   assignments: SubstitutionAssignment[];
   uncoveredSlots: UncoveredSlot[];
   aiSummary?: string;
   aiContinuityNotes?: string;
   isOverThreshold: boolean;
+  isContingencyPlan?: boolean;
 }
 
 export interface TeacherWorkloadStatus {

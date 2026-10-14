@@ -20,13 +20,14 @@ import { TEACHERS, CLASS_NAMES, PERIOD_TIMES, getTeacherById } from '../data/moc
 import { SlotSwapModal } from './SlotSwapModal';
 import { WhatsAppModal } from './WhatsAppModal';
 import { PrintableSheet } from './PrintableSheet';
-import { downloadPrintableReport } from '../utils/pdfExport';
+import { downloadPrintablePDF } from '../utils/pdfExport';
 
 interface PlanViewProps {
   plan: SubstitutionPlan | null;
   onNavigateToAbsences: () => void;
   onSwapTeacher: (assignmentId: string, newSubstituteTeacherId: string, reason: string) => void;
   onRegenerate: () => void;
+  onGenerateContingency?: () => void;
   isGenerating: boolean;
 }
 
@@ -35,6 +36,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
   onNavigateToAbsences,
   onSwapTeacher,
   onRegenerate,
+  onGenerateContingency,
   isGenerating,
 }) => {
   const [viewGrouping, setViewGrouping] = useState<'period' | 'class'>('period');
@@ -72,26 +74,38 @@ export const PlanView: React.FC<PlanViewProps> = ({
           <AlertTriangle className="w-7 h-7" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-red-900">Plan Generation Locked: Absence Threshold Exceeded</h3>
+          <h3 className="text-lg font-bold text-red-900">High Absence Alert: Staff Threshold Exceeded</h3>
           <p className="text-xs text-red-700 mt-2 max-w-md mx-auto leading-relaxed">
-            Over 50% of school faculty ({plan.absences.length} of {TEACHERS.length}) have been marked absent. 
-            Under institutional policy, automatic one-to-one substitutions cannot proceed safely.
+            Over 50% of school faculty ({plan.absences.length} of {TEACHERS.length}) are marked absent. 
+            Standard one-to-one substitutions have been exhausted, but you can deploy Option A & B contingency protocols to guarantee 100% covered periods with zero abandoned classes.
           </p>
         </div>
         <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-xs text-left text-red-800 space-y-1">
-          <p className="font-bold">Required Administrative Protocol:</p>
+          <p className="font-bold">Automated Option A & B Contingency Protocols:</p>
           <ul className="list-disc list-inside space-y-0.5 text-red-700">
-            <li>Combine primary wings for joint auditorium audio-visual sessions.</li>
-            <li>Convert Middle & Senior periods to supervised self-study in the library.</li>
-            <li>Notify the Principal's office for contingency staffing.</li>
+            <li><strong>Option B:</strong> Emergency faculty tier deployed (teachers with 6 lessons take 1 extra, capped at 7).</li>
+            <li><strong>Option A:</strong> Supervised curriculum study hall in Library Hall under Duty Master for remaining vacant periods.</li>
+            <li><strong>Guarantee:</strong> Every single class period 1–8 is safely assigned and supervised.</li>
           </ul>
         </div>
-        <button
-          onClick={onNavigateToAbsences}
-          className="min-h-[44px] px-5 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white transition-colors"
-        >
-          Adjust Absent Teachers in Basket
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {onGenerateContingency && (
+            <button
+              onClick={onGenerateContingency}
+              disabled={isGenerating}
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all shadow-xs flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Generate Contingency Plan (Option A & B: 100% Covered)</span>
+            </button>
+          )}
+          <button
+            onClick={onNavigateToAbsences}
+            className="w-full sm:w-auto min-h-[44px] px-5 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white transition-colors"
+          >
+            Adjust Absent Teachers in Basket
+          </button>
+        </div>
       </div>
     );
   }
@@ -108,16 +122,36 @@ export const PlanView: React.FC<PlanViewProps> = ({
   return (
     <div className="space-y-6">
       
+      {/* Option A & B Contingency Banner if active */}
+      {plan.isContingencyPlan && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 text-xs">
+            <h4 className="font-bold text-amber-900">
+              Contingency Protocol Active (Option A & B Fully Engaged)
+            </h4>
+            <p className="text-amber-700 mt-0.5 leading-relaxed">
+              High absence volume handled seamlessly: deployed emergency faculty tier (Option B, capped at 7 lessons) and scheduled supervised study hall periods (Option A) to guarantee 100% zero-abandoned coverage across Classes 1–12.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top Controls & Action Bar */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-bold text-slate-900">
               Today's Substitution Plan
             </h2>
             <span className="text-xs text-slate-500 font-mono">
               · Generated at {plan.createdAt}
             </span>
+            {plan.isContingencyPlan && (
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-200">
+                Option A & B Active
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             {plan.date} · {plan.absences.length} absent teacher{plan.absences.length !== 1 ? 's' : ''} accounted for
@@ -135,11 +169,11 @@ export const PlanView: React.FC<PlanViewProps> = ({
           </button>
 
           <button
-            onClick={() => downloadPrintableReport(plan)}
+            onClick={() => downloadPrintablePDF(plan)}
             className="min-h-[44px] px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
           >
             <Download className="w-4 h-4 shrink-0" />
-            <span>Download PDF / Report</span>
+            <span>Download PDF (.pdf)</span>
           </button>
 
           <button

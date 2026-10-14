@@ -398,34 +398,56 @@ export const AbsenceBasketView: React.FC<AbsenceBasketViewProps> = ({
             {/* Action Bar */}
             {absences.length > 0 && (
               <div className="pt-4 mt-3 border-t border-slate-100 space-y-2">
-                <button
-                  onClick={onGeneratePlan}
-                  disabled={isGenerating || isOverThreshold}
-                  className={`w-full min-h-[48px] rounded-lg text-sm font-semibold text-white transition-all flex items-center justify-center gap-2 shadow-sm ${
-                    isOverThreshold
-                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                      : isGenerating
-                      ? 'bg-blue-400 cursor-wait'
-                      : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98]'
-                  }`}
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      <span>Coordinating Plan with Gemma 4...</span>
-                    </>
-                  ) : isOverThreshold ? (
-                    <>
-                      <AlertCircle className="w-4 h-4 text-slate-500" />
-                      <span>Threshold Exceeded (&gt;50%)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Generate Substitution Plan</span>
-                    </>
-                  )}
-                </button>
+                {isOverThreshold ? (
+                  <div className="space-y-2">
+                    <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Over 50% Staff Absent:</span> Standard free periods are depleted. 
+                        Option A & B will deploy emergency faculty (max 7 lessons) & supervised study hall sessions to guarantee 100% class coverage.
+                      </div>
+                    </div>
+                    <button
+                      onClick={onGeneratePlan}
+                      disabled={isGenerating}
+                      className="w-full min-h-[48px] rounded-lg text-xs sm:text-sm font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm bg-amber-600 hover:bg-amber-700 active:scale-[0.98]"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          <span>Coordinating Contingency Plan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Generate Contingency Plan (Option A & B)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={onGeneratePlan}
+                    disabled={isGenerating}
+                    className={`w-full min-h-[48px] rounded-lg text-sm font-semibold text-white transition-all flex items-center justify-center gap-2 shadow-sm ${
+                      isGenerating
+                        ? 'bg-blue-400 cursor-wait'
+                        : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98]'
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span>Coordinating Plan with Gemma 4...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Generate Substitution Plan</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
                 <p className="text-[11px] text-slate-500 text-center">
                   Workload rules: Max 8 lessons/day. Staff with $\ge$6 lessons excluded from substitutions.

@@ -45,16 +45,16 @@ app.get('/api/health', (req: Request, res: Response) => {
 // Endpoint: Generate substitution plan with Gemma
 app.post('/api/substitution/generate', async (req: Request, res: Response) => {
   try {
-    const { absences } = req.body as { absences: AbsenceRecord[] };
+    const { absences, forceContingency } = req.body as { absences: AbsenceRecord[]; forceContingency?: boolean };
 
     if (!absences || !Array.isArray(absences)) {
       return res.status(400).json({ error: 'Absences array is required' });
     }
 
     // 1. Run deterministic constraint-satisfaction solver
-    const plan = generateSubstitutionPlan(absences);
+    const plan = generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
 
-    // If absence threshold exceeded (>50%), return immediately
+    // If absence threshold exceeded (>50%) and not forced contingency, return immediately
     if (plan.isOverThreshold) {
       return res.json({ plan });
     }

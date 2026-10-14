@@ -328,5 +328,16 @@ export const MASTER_TIMETABLE: TimetableSlot[] = [
 ];
 
 export const getTeacherById = (id: string): Teacher | undefined => {
+  if (id === 'DUTY-LIB') {
+    return {
+      id: 'DUTY-LIB',
+      name: 'Library & Supervised Study Hall',
+      department: 'Curriculum Review & Study',
+      wing: 'middle',
+      baseWorkload: 0,
+      subjects: ['Self-Study', 'Reading', 'Coursework Review'],
+      email: 'library@school.edu'
+    };
+  }
   return TEACHERS.find(t => t.id === id);
 };

@@ -10,12 +10,12 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    const { absences } = req.body as { absences: AbsenceRecord[] };
+    const { absences, forceContingency } = req.body as { absences: AbsenceRecord[]; forceContingency?: boolean };
     if (!absences || !Array.isArray(absences)) {
       return res.status(400).json({ error: 'Absences array is required' });
     }
 
-    const plan = generateSubstitutionPlan(absences);
+    const plan = generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
 
     if (plan.isOverThreshold) {
       return res.json({ plan });

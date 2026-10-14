@@ -66,11 +66,14 @@ export default function App() {
     ];
     setAbsences(defaultAbsences);
     const newPlan = generateSubstitutionPlan(defaultAbsences);
+    const now = new Date();
+    newPlan.createdAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    newPlan.date = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
     setPlan(newPlan);
     setActiveTab('absences');
   };
 
-  const handleGeneratePlan = async () => {
+  const handleGeneratePlan = async (forceContingency = false) => {
     if (absences.length === 0) return;
 
     setIsGenerating(true);
@@ -82,7 +85,15 @@ export default function App() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const resultPlan = await requestSubstitutionPlan(absences, abortControllerRef.current.signal);
+      const resultPlan = await requestSubstitutionPlan(
+        absences,
+        abortControllerRef.current.signal,
+        forceContingency
+      );
+      // Stamp client's exact local time (e.g. 03:50 PM / 15:50)
+      const now = new Date();
+      resultPlan.createdAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      resultPlan.date = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
       pendingPlanRef.current = resultPlan;
       setIsBackendDone(true);
     } catch (err: any) {
@@ -93,7 +104,10 @@ export default function App() {
         return;
       }
       console.error('Plan generation failed, using local solver:', err);
-      const fallback = generateSubstitutionPlan(absences);
+      const fallback = generateSubstitutionPlan(absences, undefined, undefined, forceContingency);
+      const now = new Date();
+      fallback.createdAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      fallback.date = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
       pendingPlanRef.current = fallback;
       setIsBackendDone(true);
     } finally {
@@ -113,6 +127,9 @@ export default function App() {
 
   const handleModalComplete = () => {
     if (pendingPlanRef.current) {
+      const now = new Date();
+      pendingPlanRef.current.createdAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      pendingPlanRef.current.date = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
       setPlan(pendingPlanRef.current);
     }
     setIsGemmaModalOpen(false);
@@ -150,7 +167,7 @@ export default function App() {
   };
 
   const isOverThreshold = (absences.length / TEACHERS.length) * 100 > ABSENCE_THRESHOLD_PERCENT;
-  const canGenerate = absences.length > 0 && !isOverThreshold && !isGenerating;
+  const canGenerate = absences.length > 0 && !isGenerating;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 sm:pb-8 w-full max-w-full overflow-x-hidden">
@@ -160,7 +177,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         absentCount={absences.length}
         totalAssignments={plan?.assignments.length || 0}
-        onGenerateClick={handleGeneratePlan}
+        onGenerateClick={() => handleGeneratePlan(isOverThreshold)}
         canGenerate={canGenerate}
         onReset={handleReset}
       />
@@ -174,7 +191,7 @@ export default function App() {
             onRemoveAbsence={handleRemoveAbsence}
             onUpdateScope={handleUpdateScope}
             onClearAll={handleClearAll}
-            onGeneratePlan={handleGeneratePlan}
+            onGeneratePlan={() => handleGeneratePlan(isOverThreshold)}
             isGenerating={isGenerating}
           />
         )}
@@ -184,7 +201,8 @@ export default function App() {
             plan={plan}
             onNavigateToAbsences={() => setActiveTab('absences')}
             onSwapTeacher={handleSwapTeacher}
-            onRegenerate={handleGeneratePlan}
+            onRegenerate={() => handleGeneratePlan(false)}
+            onGenerateContingency={() => handleGeneratePlan(true)}
             isGenerating={isGenerating}
           />
         )}
