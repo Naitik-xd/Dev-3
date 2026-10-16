@@ -4,10 +4,10 @@ import { AbsenceBasketView } from './components/AbsenceBasketView';
 import { PlanView } from './components/PlanView';
 import { MasterTimetableTab } from './components/MasterTimetableTab';
 import { GemmaGenerationModal } from './components/GemmaGenerationModal';
-import { AbsenceRecord, AbsenceScope, SubstitutionPlan } from './types';
+import { AbsenceRecord, AbsenceScope, SubstitutionPlan, RateLimitInfo } from './types';
 import { TEACHERS } from './data/mockData';
 import { generateSubstitutionPlan, ABSENCE_THRESHOLD_PERCENT } from './utils/solver';
-import { requestSubstitutionPlan } from './services/api';
+import { requestSubstitutionPlan, fetchRateLimitStatus } from './services/api';
 import { Users, ClipboardCheck, Calendar, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -20,6 +20,7 @@ export default function App() {
   ]);
 
   const [plan, setPlan] = useState<SubstitutionPlan | null>(null);
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGemmaModalOpen, setIsGemmaModalOpen] = useState(false);
   const [isBackendDone, setIsBackendDone] = useState(false);
@@ -27,10 +28,13 @@ export default function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const pendingPlanRef = useRef<SubstitutionPlan | null>(null);
 
-  // Generate initial plan on mount for the default 2 absent teachers
+  // Generate initial plan on mount for the default 2 absent teachers and fetch rate limit
   useEffect(() => {
     const initialPlan = generateSubstitutionPlan(absences);
     setPlan(initialPlan);
+    fetchRateLimitStatus().then(status => {
+      if (status) setRateLimit(status);
+    });
   }, []);
 
   const handleAddAbsence = (teacherId: string, scope: AbsenceScope = 'full') => {
@@ -94,6 +98,9 @@ export default function App() {
       const now = new Date();
       resultPlan.createdAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
       resultPlan.date = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      if (resultPlan.rateLimit) {
+        setRateLimit(resultPlan.rateLimit);
+      }
       pendingPlanRef.current = resultPlan;
       setIsBackendDone(true);
     } catch (err: any) {
@@ -180,6 +187,7 @@ export default function App() {
         onGenerateClick={() => handleGeneratePlan(isOverThreshold)}
         canGenerate={canGenerate}
         onReset={handleReset}
+        rateLimit={rateLimit}
       />
 
       {/* Main Content Area */}

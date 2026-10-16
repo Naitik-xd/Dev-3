@@ -47,6 +47,15 @@ export interface UncoveredSlot {
   reason: string;
 }
 
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetInMs: number;
+  resetTimeFormatted: string;
+  isLimited: boolean;
+  totalUsed: number;
+}
+
 export interface SubstitutionPlan {
   id: string;
   createdAt: string;
@@ -59,6 +68,7 @@ export interface SubstitutionPlan {
   aiContinuityNotes?: string;
   isOverThreshold: boolean;
   isContingencyPlan?: boolean;
+  rateLimit?: RateLimitInfo;
 }
 
 export interface TeacherWorkloadStatus {

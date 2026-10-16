@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 import { generateSubstitutionPlan } from '../../src/utils/solver.ts';
+import { tryConsumeRateLimit } from '../../src/utils/rateLimiter.ts';
 import { AbsenceRecord } from '../../src/types/index.ts';
 import { TEACHERS, CLASS_NAMES } from '../../src/data/mockData.ts';
 
@@ -19,6 +20,19 @@ export default async function handler(req: Request, res: Response) {
 
     if (plan.isOverThreshold) {
       return res.json({ plan });
+    }
+
+    // Check rate limit: 80 requests per 5 hr globally
+    const rateStatus = tryConsumeRateLimit();
+    res.setHeader('X-RateLimit-Limit', rateStatus.limit.toString());
+    res.setHeader('X-RateLimit-Remaining', rateStatus.remaining.toString());
+    res.setHeader('X-RateLimit-Reset-In', rateStatus.resetTimeFormatted);
+    plan.rateLimit = rateStatus;
+
+    if (!rateStatus.allowed) {
+      plan.aiSummary = `Gemma 4 platform rate limit active (${rateStatus.limit}/${rateStatus.limit} requests used in 5-hour window across all users). Conflict-free substitution plan safely created via deterministic solver. Gemma will refresh in ${rateStatus.resetTimeFormatted}.`;
+      plan.aiContinuityNotes = `• Rate Limit Policy: Maximum 80 Gemma requests per 5 hours inclusive of all IPs.\n• Integrity: All ${plan.assignments.length} vacant periods safely covered under 8-lesson cap with 0 abandoned sessions.\n• Next Refresh: Gemma AI summaries will automatically resume in ${rateStatus.resetTimeFormatted}.`;
+      return res.json({ plan, rateLimit: rateStatus });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

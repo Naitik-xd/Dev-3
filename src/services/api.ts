@@ -27,6 +27,9 @@ export async function requestSubstitutionPlan(
       data.plan.createdAt = clientNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
       data.plan.date = clientNow.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
       data.plan.generatedAtTimestamp = Date.now();
+      if (data.rateLimit) {
+        data.plan.rateLimit = data.rateLimit;
+      }
       return data.plan;
     }
     throw new Error('Invalid response structure from server');
@@ -38,4 +41,16 @@ export async function requestSubstitutionPlan(
     // Instant, collision-free local fallback
     return generateSubstitutionPlan(absences, undefined, undefined, forceContingency);
   }
+}
+
+export async function fetchRateLimitStatus(): Promise<import('../types').RateLimitInfo | null> {
+  try {
+    const res = await fetch('/api/substitution/rate-limit');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }

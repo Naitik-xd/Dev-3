@@ -249,13 +249,30 @@ export const PlanView: React.FC<PlanViewProps> = ({
 
       {/* Gemma 4 AI Handover Briefing Banner */}
       <div className="bg-white border border-blue-200/90 rounded-xl p-4 sm:p-5 shadow-xs space-y-2.5">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900">
+              Gemma 4 Coordinator Handover Briefing
+            </h3>
           </div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900">
-            Gemma 4 Coordinator Handover Briefing
-          </h3>
+
+          {plan.rateLimit && (
+            <div className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold flex items-center gap-1.5 ${
+              plan.rateLimit.isLimited 
+                ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${plan.rateLimit.isLimited ? 'bg-amber-600' : 'bg-emerald-600 animate-pulse'}`} />
+              <span>
+                {plan.rateLimit.isLimited 
+                  ? `Limit Reached (${plan.rateLimit.totalUsed}/${plan.rateLimit.limit}) • Resets in ${plan.rateLimit.resetTimeFormatted}`
+                  : `Quota: ${plan.rateLimit.remaining}/${plan.rateLimit.limit} req left (5h window)`}
+              </span>
+            </div>
+          )}
         </div>
 
         <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">

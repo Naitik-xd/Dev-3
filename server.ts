@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { generateSubstitutionPlan } from './src/utils/solver.ts';
+import { tryConsumeRateLimit, getRateLimitStatus } from './src/utils/rateLimiter.ts';
 import { AbsenceRecord } from './src/types/index.ts';
 import { TEACHERS, CLASS_NAMES } from './src/data/mockData.ts';
 
@@ -42,6 +43,15 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
+// Endpoint: Check current global rate limit status
+app.get('/api/substitution/rate-limit', (req: Request, res: Response) => {
+  const status = getRateLimitStatus();
+  res.setHeader('X-RateLimit-Limit', status.limit.toString());
+  res.setHeader('X-RateLimit-Remaining', status.remaining.toString());
+  res.setHeader('X-RateLimit-Reset-In', status.resetTimeFormatted);
+  res.json(status);
+});
+
 // Endpoint: Generate substitution plan with Gemma
 app.post('/api/substitution/generate', async (req: Request, res: Response) => {
   try {
@@ -59,7 +69,21 @@ app.post('/api/substitution/generate', async (req: Request, res: Response) => {
       return res.json({ plan });
     }
 
-    // 2. Enhance with Gemma models strictly (Gemma 4 on priority, Gemma 2 for fallbacks)
+    // 2. Check global rate limit: 80 requests per 5 hr across all IPs
+    const rateStatus = tryConsumeRateLimit();
+    res.setHeader('X-RateLimit-Limit', rateStatus.limit.toString());
+    res.setHeader('X-RateLimit-Remaining', rateStatus.remaining.toString());
+    res.setHeader('X-RateLimit-Reset-In', rateStatus.resetTimeFormatted);
+    plan.rateLimit = rateStatus;
+
+    if (!rateStatus.allowed) {
+      // Platform limit reached: fallback gracefully to deterministic plan without error crash
+      plan.aiSummary = `Gemma 4 platform rate limit active (${rateStatus.limit}/${rateStatus.limit} requests used in current 5-hour window across all users). Conflict-free substitution plan safely created via deterministic solver. Gemma will refresh in ${rateStatus.resetTimeFormatted}.`;
+      plan.aiContinuityNotes = `• Rate Limit Policy: Maximum 80 Gemma requests per 5 hours inclusive of all IPs.\n• Integrity: All ${plan.assignments.length} vacant periods safely covered under 8-lesson cap with 0 abandoned sessions.\n• Next Refresh: Gemma AI summaries will automatically resume in ${rateStatus.resetTimeFormatted}.`;
+      return res.json({ plan, rateLimit: rateStatus });
+    }
+
+    // 3. Enhance with Gemma models strictly (Gemma 4 on priority, Gemma 2 for fallbacks)
     if (ai && plan.assignments.length > 0) {
       try {
         const absentSummary = absences

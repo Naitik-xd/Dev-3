@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, Calendar, ClipboardCheck, ArrowRight, RotateCcw } from 'lucide-react';
+import { Users, Calendar, ClipboardCheck, ArrowRight, RotateCcw, Clock } from 'lucide-react';
+import { RateLimitInfo } from '../types';
 
 interface HeaderProps {
   activeTab: 'absences' | 'plan' | 'timetable';
@@ -9,6 +9,7 @@ interface HeaderProps {
   onGenerateClick?: () => void;
   canGenerate: boolean;
   onReset: () => void;
+  rateLimit?: RateLimitInfo | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onGenerateClick,
   canGenerate,
   onReset,
+  rateLimit,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs">
@@ -92,6 +94,21 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Zone 3: Primary Action / Reset */}
           <div className="flex items-center gap-2 shrink-0">
+            {rateLimit && (
+              <div 
+                title={`Global Gemma 4 Rate Limit: Max 80 requests per 5 hours across all users. ${rateLimit.remaining} remaining.`}
+                className={`hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border ${
+                  rateLimit.isLimited 
+                    ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                }`}
+              >
+                <Clock className="w-3 h-3 text-slate-400" />
+                <span className={`w-1.5 h-1.5 rounded-full ${rateLimit.isLimited ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                <span>Gemma: {rateLimit.remaining}/{rateLimit.limit} (5h)</span>
+              </div>
+            )}
+
             <button
               onClick={onReset}
               title="Reset Roster & Clear Absences"
