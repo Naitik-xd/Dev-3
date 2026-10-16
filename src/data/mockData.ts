@@ -1,4 +1,4 @@
-import { Teacher, TimetableSlot } from '../types';
+import type { Teacher, TimetableSlot } from '../types/index.ts';
 
 export const TEACHERS: Teacher[] = [
   // Primary Wing (Classes 1 - 5)

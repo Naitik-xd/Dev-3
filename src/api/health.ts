@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 
-export default function handler(req: Request, res: Response) {
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
+export default async function handler(req: Request, res: Response) {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  return res.status(200).json({ 
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  return res.json({ 
     status: 'ok', 
     version: '1.0.0-beta', 
     model: 'gemma-4-26b-a4b-it',

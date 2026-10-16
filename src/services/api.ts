@@ -7,12 +7,13 @@ export async function requestSubstitutionPlan(
   forceContingency = false
 ): Promise<SubstitutionPlan> {
   try {
+    const basePlan = generateSubstitutionPlan(absences, undefined, undefined, forceContingency);
     const response = await fetch('/api/substitution/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ absences, forceContingency }),
+      body: JSON.stringify({ absences, forceContingency, plan: basePlan }),
       signal,
     });
 

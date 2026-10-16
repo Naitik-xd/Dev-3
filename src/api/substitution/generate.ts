@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
-import { generateSubstitutionPlan } from '../../src/utils/solver.ts';
-import { tryConsumeRateLimit } from '../../src/utils/rateLimiter.ts';
-import { AbsenceRecord } from '../../src/types/index.ts';
-import { TEACHERS, CLASS_NAMES } from '../../src/data/mockData.ts';
+import { generateSubstitutionPlan } from '../../utils/solver.ts';
+import { tryConsumeRateLimit } from '../../utils/rateLimiter.ts';
+import type { AbsenceRecord, SubstitutionPlan } from '../../types/index.ts';
+import { TEACHERS, CLASS_NAMES } from '../../data/mockData.ts';
 
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
@@ -11,18 +11,22 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    const { absences, forceContingency } = req.body as { absences: AbsenceRecord[]; forceContingency?: boolean };
+    const { absences, forceContingency, plan: clientPlan } = req.body as {
+      absences: AbsenceRecord[];
+      forceContingency?: boolean;
+      plan?: SubstitutionPlan;
+    };
     if (!absences || !Array.isArray(absences)) {
       return res.status(400).json({ error: 'Absences array is required' });
     }
 
-    const plan = generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
+    const plan: SubstitutionPlan = clientPlan || generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
 
     if (plan.isOverThreshold) {
       return res.json({ plan });
     }
 
-    // Check rate limit: 80 requests per 5 hr globally
+    // Check rate limit: 80 requests per 5 hr globally across all IPs
     const rateStatus = tryConsumeRateLimit();
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -92,10 +96,14 @@ Respond strictly in valid JSON format:
 
         for (const model of gemmaModels) {
           try {
-            const response = await ai.models.generateContent({
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout calling Gemma model ${model}`)), 7000)
+            );
+            const callPromise = ai.models.generateContent({
               model,
               contents: prompt,
             });
+            const response: any = await Promise.race([callPromise, timeoutPromise]);
             if (response && response.text) {
               responseText = response.text;
               break;
@@ -126,7 +134,6 @@ Respond strictly in valid JSON format:
           plan.aiContinuityNotes = `• Supervision Priority: Ensure substitutes for Classes 1–5 collect homeroom folders for activity continuity.\n• Core Subjects: Science and Math substitutions have been routed to wing specialists to maintain syllabus pacing.\n• Staff Welfare: Faculty with 6 regular base periods were successfully shielded from extra substitution duties.`;
         }
       } catch (err) {
-        // Fallback note
         plan.aiSummary = `Plan verified by SubMaster Engine: ${plan.assignments.length} substitutions scheduled with grade-level proximity matching.`;
       }
     }

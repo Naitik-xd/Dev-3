@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build:api": "esbuild src/api/health.ts --bundle --platform=node --format=esm --packages=external --outfile=api/health.js && esbuild src/api/substitution/generate.ts --bundle --platform=node --format=esm --packages=external --outfile=api/substitution/generate.js && esbuild src/api/substitution/rate-limit.ts --bundle --platform=node --format=esm --packages=external --outfile=api/substitution/rate-limit.js",
+    "build": "vite build && npm run build:api",
     "start": "tsx server.ts",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist api/*.js api/substitution/*.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

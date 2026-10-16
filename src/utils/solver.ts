@@ -1,5 +1,5 @@
-import { Teacher, TimetableSlot, AbsenceRecord, SubstitutionAssignment, UncoveredSlot, SubstitutionPlan, CandidateEvaluation, Wing } from '../types';
-import { TEACHERS, MASTER_TIMETABLE, getWingForClass, getTeacherById } from '../data/mockData';
+import type { Teacher, TimetableSlot, AbsenceRecord, SubstitutionAssignment, UncoveredSlot, SubstitutionPlan, CandidateEvaluation, Wing } from '../types/index.ts';
+import { TEACHERS, MASTER_TIMETABLE, getWingForClass, getTeacherById } from '../data/mockData.ts';
 
 export const MAX_DAILY_LESSONS = 8;
 export const MAX_BASE_FOR_SUB = 5; // Teachers with >= 6 lessons receive NO substitutions

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { generateSubstitutionPlan } from './src/utils/solver.ts';
 import { tryConsumeRateLimit, getRateLimitStatus } from './src/utils/rateLimiter.ts';
-import { AbsenceRecord } from './src/types/index.ts';
+import { AbsenceRecord, SubstitutionPlan, SubstitutionAssignment } from './src/types/index.ts';
 import { TEACHERS, CLASS_NAMES } from './src/data/mockData.ts';
 
 dotenv.config();
@@ -61,14 +61,18 @@ app.get('/api/substitution/rate-limit', (req: Request, res: Response) => {
 // Endpoint: Generate substitution plan with Gemma
 app.post('/api/substitution/generate', async (req: Request, res: Response) => {
   try {
-    const { absences, forceContingency } = req.body as { absences: AbsenceRecord[]; forceContingency?: boolean };
+    const { absences, forceContingency, plan: clientPlan } = req.body as {
+      absences: AbsenceRecord[];
+      forceContingency?: boolean;
+      plan?: any;
+    };
 
     if (!absences || !Array.isArray(absences)) {
       return res.status(400).json({ error: 'Absences array is required' });
     }
 
-    // 1. Run deterministic constraint-satisfaction solver
-    const plan = generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
+    // 1. Run deterministic constraint-satisfaction solver (or use client provided plan)
+    const plan: SubstitutionPlan = clientPlan || generateSubstitutionPlan(absences, TEACHERS, undefined, !!forceContingency);
 
     // If absence threshold exceeded (>50%) and not forced contingency, return immediately
     if (plan.isOverThreshold) {
@@ -139,10 +143,14 @@ Respond in JSON format like:
 
         for (const model of gemmaModels) {
           try {
-            const response = await ai.models.generateContent({
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout calling Gemma model ${model}`)), 7000)
+            );
+            const callPromise = ai.models.generateContent({
               model,
               contents: prompt,
             });
+            const response: any = await Promise.race([callPromise, timeoutPromise]);
             if (response && response.text) {
               responseText = response.text;
               break;
