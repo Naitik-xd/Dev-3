@@ -24,6 +24,8 @@ export default async function handler(req: Request, res: Response) {
 
     // Check rate limit: 80 requests per 5 hr globally
     const rateStatus = tryConsumeRateLimit();
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.setHeader('X-RateLimit-Limit', rateStatus.limit.toString());
     res.setHeader('X-RateLimit-Remaining', rateStatus.remaining.toString());
     res.setHeader('X-RateLimit-Reset-In', rateStatus.resetTimeFormatted);
@@ -129,7 +131,7 @@ Respond strictly in valid JSON format:
       }
     }
 
-    return res.json({ plan });
+    return res.json({ plan, rateLimit: rateStatus });
   } catch (err) {
     console.error('Serverless error generating substitution plan:', err);
     return res.status(500).json({ error: 'Failed to generate substitution plan' });
